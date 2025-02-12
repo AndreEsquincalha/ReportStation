@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 import altair as at
-from graficos import plotar_grafico  # Importando a função do arquivo graficos.py
+from graficos_static import plotar_grafico
+from graficos_dynamic import plotar_grafico_dynamic  # Importando a função do arquivo graficos.py
 
 # Ajustando a largura da página para exibir mais informações
 st.set_page_config(layout="wide")
@@ -19,9 +20,13 @@ df = df[["Date_Time", "NO", "Status_NO", "NO2", "Status_NO2", "NOX", "Status_NOX
 df.columns = ["date", "NO", "NOflag", "NO2", "NO2flag", "NOX", "NOXflag", "O3", "O3flag",
               "CO", "COflag", "SO2", "SO2flag", "PM10", "PM10flag"]
 
-df["date"] = pd.to_datetime(df["date"])
+df["date"] = pd.to_datetime(df["date"])  # Converte a coluna para datetime
+#df.set_index("date", inplace=True)  # Define a coluna como índice
 df.sort_values("date", inplace=True)
 df.set_index("date", inplace=True)
+
+ultima_data = df.index.max()
+
 
 # 🖥️ Criando colunas para organizar layout (Cabeçalho à esquerda, filtro de dias à direita)
 col1, col2 = st.columns([3, 1])
@@ -48,7 +53,8 @@ with col2:
     days_input = st.number_input("", min_value=1, max_value=365, value=2, step=1, label_visibility="collapsed")
 
 # 📅 Filtrando dados pelo intervalo selecionado
-start_date = pd.Timestamp.today() - pd.Timedelta(days=days_input)
+start_date = df.index.max() - pd.Timedelta(days=days_input)
+
 
 with col1:
     st.markdown("""
@@ -64,30 +70,30 @@ with col1:
             🚩 ESTAÇÃO Qt - BOM RETIRO (Fazenda)
         </div>
     """.format(
-        date=pd.Timestamp.today().strftime('%d/%m/%Y'),
+        date=df.index.max().strftime('%d/%m/%Y'),
         start_date=start_date.strftime('%d/%m/%Y'),
-        end_date=pd.Timestamp.today().strftime('%d/%m/%Y')
+        end_date=df.index.max().strftime('%d/%m/%Y')
     ), unsafe_allow_html=True)
 
 
-df = df[df.index >= start_date]
+df_filtered = df[df.index >= start_date]
 
 # 🎯 Filtrando apenas dados válidos
-valid_data = df[
-    (df["NOflag"] == 1) & (df["NO2flag"] == 1) & (df["NOXflag"] == 1) &
-    (df["O3flag"] == 1) & (df["COflag"] == 1) &
-    (df["SO2flag"] == 1) & (df["PM10flag"] == 1)
+valid_data = df_filtered[
+    (df_filtered["NOflag"] == 1) & (df_filtered["NO2flag"] == 1) & (df_filtered["NOXflag"] == 1) &
+    (df_filtered["O3flag"] == 1) & (df_filtered["COflag"] == 1) &
+    (df_filtered["SO2flag"] == 1) & (df_filtered["PM10flag"] == 1)
 ].copy()
 
 # ⚠️ Criando outro filtro para dados válidos e inválidos
-valid_invld_data = df[
-    ((df["NOflag"] == 1) | (df["NOflag"] == 4)) &
-    ((df["NO2flag"] == 1) | (df["NO2flag"] == 4)) &
-    ((df["NOXflag"] == 1) | (df["NOXflag"] == 4)) &
-    ((df["O3flag"] == 1) | (df["O3flag"] == 4)) &
-    ((df["COflag"] == 1) | (df["COflag"] == 4)) &
-    ((df["SO2flag"] == 1) | (df["SO2flag"] == 4)) &
-    ((df["PM10flag"] == 1) | (df["PM10flag"] == 4))
+valid_invld_data = df_filtered[
+    ((df_filtered["NOflag"] == 1) | (df_filtered["NOflag"] == 4)) &
+    ((df_filtered["NO2flag"] == 1) | (df_filtered["NO2flag"] == 4)) &
+    ((df_filtered["NOXflag"] == 1) | (df_filtered["NOXflag"] == 4)) &
+    ((df_filtered["O3flag"] == 1) | (df_filtered["O3flag"] == 4)) &
+    ((df_filtered["COflag"] == 1) | (df_filtered["COflag"] == 4)) &
+    ((df_filtered["SO2flag"] == 1) | (df_filtered["SO2flag"] == 4)) &
+    ((df_filtered["PM10flag"] == 1) | (df_filtered["PM10flag"] == 4))
 ].copy()
 
 # 📊 Definição dos limites da CONAMA
@@ -146,7 +152,7 @@ for date, row in valid_data[valid_data["is_outside_margin"]].iterrows():
 
 # 📊 Mensagens sobre limites ultrapassados
 st.markdown("""
-    <div style= padding: 5px; border-radius: 5px; margin-bottom: -10px;">
+    <div style= padding: 5px; border-radius: 5px; margin-bottom: -10px; ">
         <b>📊 Padrão de QAr (CONAMA 506/2024):</b>
     </div>
 """, unsafe_allow_html=True)
@@ -164,14 +170,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 if messages_OC:
     for msg in messages_OC:
-        st.markdown(f"<div style='background-color: #ffcccc; padding: 3px; border-radius: 5px;'>{msg}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='background-color: #ffcccc; padding: 2px; border-radius: 1px;'>{msg}</div>", unsafe_allow_html=True)
 else:
-    st.markdown("<div style='background-color: #ddffdd; padding: 3px; border-radius: 5px;'>Nenhuma ocorrência a relatar.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='background-color: #ddffdd; padding: 3px; border-radius: 1px;'>Nenhuma ocorrência a relatar.</div>", unsafe_allow_html=True)
 
-# 📈 Gráficos interativos
-# Gerar o gráfico do parâmetro escolhido
+st.markdown("")
 
 params = ["NO","NO2"]
+cols = st.columns(len(params))
+# Criando o estado da aplicação para alternar gráficos
+if "use_flag_graphs" not in st.session_state:
+    st.session_state.use_flag_graphs = False
 
-for param in params:
-    plotar_grafico(param, df)
+if st.session_state.use_flag_graphs:
+    for i, param in enumerate(params):
+        plotar_grafico(param, df, cols[i])
+    button_label = "Gráficos Dinâmicos"
+else:
+    for i, param in enumerate(params):
+        plotar_grafico_dynamic(param, df, cols[i])
+    button_label = "Gráficos de Flag"
+
+# Botão para alternar gráficos
+if st.button(button_label):
+    st.session_state.use_flag_graphs = not st.session_state.use_flag_graphs
+    st.rerun()
