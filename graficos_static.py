@@ -3,6 +3,11 @@ import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
 import streamlit as st  # Importação mantida dentro da função para evitar conflitos
 import pandas as pd
+import os
+
+# 📂 Criar pasta para armazenar os gráficos
+graficos_path = "graficos"
+os.makedirs(graficos_path, exist_ok=True)
 
 def plotar_grafico(parametro, df, col):
     """
@@ -88,3 +93,82 @@ def plotar_grafico(parametro, df, col):
     col1, col2 = st.columns(2) if 'col1' not in locals() else (col1, col2)
     with col:
         st.pyplot(fig)
+
+
+def gerar_grafico_html(parametro, df):
+    """
+    Gera um gráfico do parâmetro selecionado e salva como imagem.
+
+    Parâmetros:
+    - parametro (str): Nome do parâmetro a ser exibido no gráfico.
+    - df (DataFrame): DataFrame contendo os dados processados.
+
+    Retorna:
+    - Caminho do arquivo salvo.
+    """
+    if not isinstance(df.index, pd.DatetimeIndex):
+        df.index = pd.to_datetime(df.index)
+    
+    # 🔹 Filtrar os últimos 30 dias
+    ultima_data = df.index.max()
+    data_inicio = ultima_data - pd.Timedelta(days=30)
+    df = df.loc[data_inicio:ultima_data]
+    
+    flag_column = parametro + "flag"
+    flag_height = 999  # Altura das flags
+
+    # Criar colunas para diferentes condições de flag
+    conditions_map = {
+        "Força Maior": 16,
+        "Calibração": 9,
+        "Dados Inválidos": 4,
+        "Dados Ausentes": 0,
+        "Manutenção": 28
+    }
+
+    for condition, flag_value in conditions_map.items():
+        df.loc[:, condition] = df[flag_column].apply(lambda x: flag_height if x == flag_value else 0)
+
+    df.loc[:, parametro] = df.apply(lambda x: x[parametro] if x[flag_column] == 1 else None, axis=1)
+
+    # Criando o gráfico
+    fig, ax = plt.subplots(figsize=(14, 4))
+
+    # Lista de cores para as condições
+    colors = ['#FFFF99', '#C3DFF9', '#FCB7AF', '#FFDA9E', '#E4F8D6']
+    conditions = list(conditions_map.keys())
+
+    # Plotar as barras para indicar as condições
+    bar_width = 0.05
+    for condition, color in zip(conditions, colors):
+        ax.bar(df.index, df[condition], width=bar_width, color=color, label=condition)
+
+    # Plotar a linha do parâmetro escolhido
+    ax.plot(df.index, df[parametro], label=parametro, color='blue', linewidth=2.5)
+
+    # Melhorando a formatação do eixo X
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%y'))
+    plt.xticks(rotation=45, ha="right")
+    ax.tick_params(axis='x', labelsize=10)
+
+    # Ajuste dos limites do eixo Y
+    ax.set_ylim(0, df[parametro].max() + 4 if not df[parametro].isnull().all() else 10)
+    ax.set_ylabel(f"{parametro} (ppb)", fontsize=12)
+
+    # Configuração da grade no eixo Y
+    ax.tick_params(axis='y', labelsize=12)
+    ax.grid(True, which='major', axis='y', linestyle='--', linewidth=0.5)
+
+    # Criar legenda personalizada
+    legend_elements = [
+        Line2D([0], [0], color=color, lw=4, label=condition) for condition, color in zip(conditions, colors)
+    ]
+    ax.legend(handles=legend_elements, loc='upper left', fontsize='small', frameon=True)
+
+    # Salvar gráfico
+    grafico_file = f"{graficos_path}/{parametro}.png"
+    plt.savefig(grafico_file, bbox_inches="tight")
+    plt.close()
+
+    return grafico_file

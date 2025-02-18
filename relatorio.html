@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Qualidade do Ar</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 280mm;
+            min-height: 396mm;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 15mm 10mm;
+            box-sizing: border-box;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 10px;
+            margin-top: -45px;
+        }
+        h2 {
+            font-size: 16px;
+            padding: 1px;
+            margin-bottom: 6px;
+            margin-top: 6px;
+            page-break-after: avoid;
+        }
+        p {
+            font-size: 14px;
+            margin: 3px;
+            margin-bottom: 1px;
+        }
+        .exceeded-container, .alerta-container {
+            background-color: #ffcccc;
+            padding: 2px;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+        .graficos-container {
+            display: block;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            page-break-inside: auto;
+        }
+        .graficos-container img {
+            width: 100%;
+            max-height: 350px;
+            object-fit: contain;
+            padding: 1px;
+            page-break-before: auto;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>INFORME DIÁRIO - 02/02/2025</h1>
+        <p><b>Período:</b> 31/01/2025 a 02/02/2025</p>
+        <p><b>Estação Monitorada:</b> Qt - BOM RETIRO</p>
+
+        <div class="exceeded-container">
+            <p><b>Padrão de QAr (CONAMA 506/2024):</b></p>
+            <p>Nenhum limite foi ultrapassado.</p>
+        </div>
+
+        <div class="alerta-container">
+            <p><b>Ocorrências:</b></p>
+            <p>PM10 abaixo de -2 em 01/02/25 14:00</p><p>PM10 abaixo de -2 em 02/02/25 12:00</p><p>PM10 abaixo de -2 em 02/02/25 13:00</p>
+        </div>
+
+        <div class="graficos-container">
+            <img src="graficos/NO.png" alt="Gráfico de NO"><img src="graficos/NO2.png" alt="Gráfico de NO2"><img src="graficos/NOX.png" alt="Gráfico de NOX"><img src="graficos/O3.png" alt="Gráfico de O3"><img src="graficos/CO.png" alt="Gráfico de CO"><img src="graficos/SO2.png" alt="Gráfico de SO2"><img src="graficos/PM10.png" alt="Gráfico de PM10">
+        </div>
+    </div>
+</body>
+</html>
